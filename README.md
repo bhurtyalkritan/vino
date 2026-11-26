@@ -77,3 +77,7 @@ cd mac && swift build -c release && swift test     # unit tests
 python3 test_vino.py                               # the command line, end to end, with a fake Wine
 cd mac && VINO_TEST_DOWNLOAD=1 swift test --filter testDownloadWine   # downloads Wine (185 MB) into a temp folder
 ```
+
+## License
+
+MIT, see `LICENSE`. innoextract (in `mac/vendor`) has its own zlib license. Wine is LGPL; Vino downloads it rather than including it.
