@@ -1,0 +1,13 @@
+{
+ "name": "WinMerge",
+ "summary": "Compares and merges files and folders side by side",
+ "symbol": "arrow.left.arrow.right",
+ "url": "https://github.com/WinMerge/winmerge/releases/download/v2.16.60/WinMerge-2.16.60-x64-Setup.exe",
+ "sha256": "ed01097f60b63b3e7d58b3036064c40f05504a47c23c231a1081142295815f7f",
+ "size": 18697696,
+ "args": [
+  "/VERYSILENT",
+  "/SUPPRESSMSGBOXES",
+  "/NORESTART"
+ ]
+}

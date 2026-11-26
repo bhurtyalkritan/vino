@@ -1,0 +1,12 @@
+{
+ "name": "7-Zip",
+ "app": "7-Zip File Manager",
+ "summary": "Opens and makes .7z, .zip, .rar and other archives",
+ "symbol": "archivebox",
+ "url": "https://github.com/ip7z/7zip/releases/download/26.06/7z2606-x64.exe",
+ "sha256": "9b697f65ecc2d9b0152f5ee96d72dde522a7827690349d9307935dacf40f42ec",
+ "size": 1659704,
+ "args": [
+  "/S"
+ ]
+}
