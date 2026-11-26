@@ -1,3 +1,5 @@
+<p align="center"><img src="branding/icon.svg" width="128" alt="Vino logo"></p>
+
 # Vino
 
 Run Windows apps on your Mac. Free, and one download: Vino sets up Rosetta and its own copy of Wine (WineHQ 11.0, built by Gcenx) the first time you open it.

@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vino</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="description" content="Vino is a free, open-source Mac app that runs Windows apps, built on Wine. A free alternative to CrossOver.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f5fa;
+  --text: #17151f;
+  --muted: #5d5a6b;
+  --line: rgba(23, 21, 31, .09);
+  --glass: rgba(255, 255, 255, .62);
+  --glass-strong: rgba(255, 255, 255, .82);
+  --glass-edge: rgba(255, 255, 255, .9);
+  --shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 30px 60px -30px rgba(40, 24, 110, .35), 0 8px 24px -12px rgba(40, 24, 110, .18);
+  --accent: #6a4be6;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(106, 75, 230, .1);
+  --orb-a: #b9a8ff;
+  --orb-b: #ffc6e3;
+  --radius: 22px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0d13;
+    --text: #efedf7;
+    --muted: #a6a2b6;
+    --line: rgba(255, 255, 255, .08);
+    --glass: rgba(34, 31, 46, .55);
+    --glass-strong: rgba(40, 37, 54, .78);
+    --glass-edge: rgba(255, 255, 255, .1);
+    --shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 30px 60px -30px rgba(0, 0, 0, .8), 0 8px 24px -12px rgba(0, 0, 0, .6);
+    --accent: #a08cff;
+    --accent-ink: #140f2e;
+    --accent-soft: rgba(160, 140, 255, .12);
+    --orb-a: #4b36b8;
+    --orb-b: #7a2f63;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 17px/1.6 Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: var(--accent); text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+code { font: 500 .92em ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--accent-soft); padding: .1em .4em; border-radius: 6px; }
+
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+.serif { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; }
+
+/* header */
+.top { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 600; font-size: 18px; letter-spacing: -.01em; }
+.brand svg { color: var(--accent); }
+.top nav { display: flex; gap: 22px; font-size: 15px; }
+.top nav a { color: var(--muted); text-decoration: none; }
+.top nav a:hover { color: var(--text); }
+
+/* hero */
+.hero { display: grid; grid-template-columns: 1fr 1.05fr; gap: 56px; align-items: center; padding: 56px 0 96px; }
+h1 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: clamp(48px, 7vw, 84px); line-height: .98; letter-spacing: -.02em; margin: 0 0 22px; }
+h1 em { color: var(--accent); }
+.lede { font-size: 19px; color: var(--muted); max-width: 30em; margin: 0 0 32px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 22px; border-radius: 999px; font-weight: 600; font-size: 16px; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 10px 24px -10px var(--accent); }
+.btn-primary:hover { transform: translateY(-1px); }
+.btn-ghost { color: var(--text); background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.meta { margin: 22px 0 0; font-size: 14px; color: var(--muted); }
+
+/* the frosted window */
+.stage { position: relative; min-height: 380px; }
+.orb { position: absolute; border-radius: 50%; filter: blur(50px); opacity: .75; pointer-events: none; }
+.orb.a { width: 300px; height: 300px; background: var(--orb-a); top: -30px; right: 4%; }
+.orb.b { width: 240px; height: 240px; background: var(--orb-b); bottom: -20px; left: 6%; }
+.window {
+  position: relative; border-radius: 18px; overflow: hidden;
+  background: var(--glass); border: 1px solid var(--glass-edge); box-shadow: var(--shadow);
+  backdrop-filter: blur(28px) saturate(1.4); -webkit-backdrop-filter: blur(28px) saturate(1.4);
+}
+.titlebar { display: flex; align-items: center; gap: 8px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+.dot { width: 12px; height: 12px; border-radius: 50%; }
+.dot:nth-child(1) { background: #ff5f57; } .dot:nth-child(2) { background: #febc2e; } .dot:nth-child(3) { background: #28c840; }
+.titlebar span { margin-left: 10px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.winbody { display: grid; grid-template-columns: 128px 1fr; min-height: 250px; }
+.side { padding: 16px 12px; border-right: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.side p { margin: 0 0 8px; padding: 0 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.side div { padding: 6px 8px; border-radius: 8px; margin-bottom: 2px; }
+.side .on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.grid { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 10px; padding: 24px 18px; align-content: start; }
+.tile { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; text-align: center; }
+.icon { width: 54px; height: 54px; border-radius: 14px; display: grid; place-items: center; box-shadow: 0 6px 14px -6px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35); }
+.icon svg { width: 28px; height: 28px; }
+.i1 { background: linear-gradient(150deg, #8fd16a, #3f9a3a); }
+.i2 { background: linear-gradient(150deg, #4a4a4a, #1d1d1d); }
+.i3 { background: linear-gradient(150deg, #ffcf5c, #f08c1c); }
+.i4 { background: linear-gradient(150deg, #7fb6ff, #3c6fe0); }
+.dropzone { border: 1.5px dashed var(--line); border-radius: 14px; width: 54px; height: 54px; }
+
+/* drop animation: an .exe falls in, becomes a tile */
+.file {
+  position: absolute; z-index: 2; left: 50%; margin-left: -21px; top: 1px; width: 42px; height: 52px;
+  display: grid; place-items: end center; padding-bottom: 6px;
+  background: var(--glass-strong); border: 1px solid var(--glass-edge); border-radius: 6px 14px 6px 6px;
+  font: 600 10px ui-monospace, Menlo, monospace; color: var(--accent);
+  box-shadow: 0 10px 24px -8px rgba(0,0,0,.35);
+  animation: drop 6s cubic-bezier(.3,.7,.3,1) infinite;
+}
+.new .icon, .new .label { animation: pop 6s ease infinite; }
+.new { position: relative; }
+.new .ghost { position: absolute; top: 0; animation: ghost 6s ease infinite; }
+@keyframes drop {
+  0%, 8% { transform: translate(40px, -110px) rotate(-12deg); opacity: 0; }
+  18% { opacity: 1; }
+  38% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  46% { transform: translate(0, 0) scale(.6); opacity: 0; }
+  100% { transform: translate(0, 0) scale(.6); opacity: 0; }
+}
+@keyframes pop {
+  0%, 42% { transform: scale(.4); opacity: 0; }
+  52% { transform: scale(1.08); opacity: 1; }
+  58%, 90% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@keyframes ghost { 0%, 40% { opacity: 1; } 48%, 92% { opacity: 0; } 100% { opacity: 1; } }
+.caption { margin: 18px 4px 0; font-size: 14px; color: var(--muted); text-align: center; }
+
+/* sections */
+section { padding: 72px 0; }
+.eyebrow { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin: 0 0 10px; }
+h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: clamp(34px, 4.5vw, 48px); line-height: 1.05; letter-spacing: -.01em; margin: 0 0 40px; max-width: 18em; }
+h3 { font-size: 17px; font-weight: 600; margin: 0 0 6px; letter-spacing: -.01em; }
+
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.feature { background: var(--bg); padding: 28px 26px 30px; }
+.feature svg { color: var(--accent); margin-bottom: 14px; }
+.feature p { margin: 0; color: var(--muted); font-size: 15.5px; }
+.cli { margin: 24px 0 0; color: var(--muted); font-size: 15.5px; }
+
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; counter-reset: s; }
+.steps li { counter-increment: s; border-top: 1px solid var(--line); padding-top: 18px; }
+.steps li::before { content: counter(s); display: block; font-family: "Instrument Serif", Georgia, serif; font-size: 44px; line-height: 1; color: var(--accent); margin-bottom: 12px; }
+.steps p { margin: 0; color: var(--muted); font-size: 15.5px; }
+.limits { margin: 48px 0 0; padding: 16px 20px; border-radius: 14px; border: 1px solid var(--line); font-size: 15px; color: var(--muted); }
+.limits strong { color: var(--text); font-weight: 600; }
+
+.donate {
+  position: relative; overflow: hidden; border-radius: 28px; padding: 56px 48px;
+  background: var(--glass); border: 1px solid var(--glass-edge); box-shadow: var(--shadow);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  display: grid; grid-template-columns: 1.4fr auto; gap: 32px; align-items: center;
+}
+.donate + .donate { margin-top: 20px; }
+.donate .orb.a { top: -120px; right: -60px; opacity: .45; }
+.donate > :not(.orb) { position: relative; }
+.donate h2 { margin: 0 0 12px; }
+.donate p { margin: 0; color: var(--muted); max-width: 34em; }
+
+.credits { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+.credits ul { list-style: none; margin: 0; padding: 0; }
+.credits li { padding: 11px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; font-size: 15.5px; }
+.credits li span { color: var(--muted); text-align: right; }
+.credits .note { color: var(--muted); font-size: 15px; margin: 0 0 16px; }
+
+footer { border-top: 1px solid var(--line); padding: 28px 0 40px; font-size: 14px; color: var(--muted); }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; }
+footer a { color: var(--muted); }
+footer a:hover { color: var(--text); }
+footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; gap: 48px; padding: 32px 0 64px; }
+  .features { grid-template-columns: 1fr 1fr; }
+  .steps { grid-template-columns: 1fr; gap: 24px; }
+  .donate { grid-template-columns: 1fr; padding: 40px 28px; }
+  .credits { grid-template-columns: 1fr; gap: 32px; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 0 16px; }
+  .top nav a.hide-sm { display: none; }
+  .features { grid-template-columns: 1fr; }
+  .winbody { grid-template-columns: 1fr; }
+  .side { display: none; }
+  .grid { gap: 16px 6px; padding: 22px 12px; }
+  section { padding: 56px 0; }
+  .lede { font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .file, .new .ghost { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="wrap top">
+  <a class="brand" href="#" aria-label="Vino home">
+    <img src="icon.svg" width="30" height="30" alt="">
+    Vino
+  </a>
+  <nav aria-label="Primary">
+    <a class="hide-sm" href="#features">Features</a>
+    <a class="hide-sm" href="#wine">Support Wine</a>
+    <a href="https://github.com/bhurtyalkritan/vino">GitHub</a>
+  </nav>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <div>
+      <h1>Windows apps,<br>right on your <em>Mac.</em></h1>
+      <p class="lede">Vino is a free, open-source Mac app that runs Windows apps. It's built on Wine, and it's a free alternative to CrossOver.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="https://github.com/bhurtyalkritan/vino">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          Get Vino on GitHub
+        </a>
+        <a class="btn btn-ghost" href="#wine">Support Wine</a>
+      </div>
+      <p class="meta">MIT licensed. Apple Silicon or Intel, macOS 13 or later.</p>
+    </div>
+
+    <figure class="stage" style="margin:0">
+      <div class="orb a" aria-hidden="true"></div>
+      <div class="orb b" aria-hidden="true"></div>
+      <div class="window" role="img" aria-label="Illustration of the Vino window: a setup.exe file is dropped in and becomes an app tile next to Notepad++, 7-Zip and WinMerge.">
+        <div class="titlebar" aria-hidden="true"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>Vino</span></div>
+        <div class="winbody" aria-hidden="true">
+          <div class="side">
+            <p>Bottles</p>
+            <div class="on">Default</div>
+            <div>Games</div>
+            <p style="margin-top:16px">Library</p>
+            <div>Get Apps</div>
+            <div>Components</div>
+          </div>
+          <div class="grid">
+            <div class="tile"><div class="icon i1"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 4h9l3 3v13H6z"/><path d="M9 11h6M9 15h4"/></svg></div>Notepad++</div>
+            <div class="tile"><div class="icon i2"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8M12 12v8"/></svg></div>7-Zip</div>
+            <div class="tile new">
+              <div class="dropzone ghost"></div>
+              <div class="file">.exe</div>
+              <div class="icon i3"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="3"/><circle cx="12" cy="13.5" r="3.5"/><path d="M9 7l1.5-3h3L15 7"/></svg></div>
+              <span class="label">Greenshot</span>
+            </div>
+            <div class="tile"><div class="icon i4"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M10 12h4"/></svg></div>WinMerge</div>
+          </div>
+        </div>
+      </div>
+      <figcaption class="caption">Drop an installer on the window. The app appears with its real icon.</figcaption>
+    </figure>
+  </div>
+
+  <section id="features" aria-labelledby="features-h">
+    <div class="wrap">
+      <p class="eyebrow">What you get</p>
+      <h2 id="features-h">Wine, with a proper Mac app around it.</h2>
+      <div class="features">
+        <article class="feature">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          <h3>One download</h3>
+          <p>On first launch Vino installs Apple's Rosetta and downloads vino-wine, its own build of CodeWeavers' open-source CrossOver Wine.</p>
+        </article>
+        <article class="feature">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+          <h3>Get Apps</h3>
+          <p>One-click installs for Notepad++, 7-Zip, WinMerge and Greenshot. Each download is checked against the publisher's checksum.</p>
+        </article>
+        <article class="feature">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+          <h3>Bottles in plain language</h3>
+          <p>Separate Windows setups with clear switches: DirectX via DXVK, Retina, &#8984; as Ctrl, MSync, AVX support, Windows version, run in a window.</p>
+        </article>
+        <article class="feature">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>
+          <h3>Windows Components</h3>
+          <p>Add Visual C++, .NET, DirectX extras and fonts through the bundled Winetricks.</p>
+        </article>
+        <article class="feature">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 9l3 3-3 3M12 15h5"/></svg>
+          <h3>See why apps crash</h3>
+          <p>Error lines show up right on the app's page, next to the logs. Developers get Metal HUD and Xcode GPU capture.</p>
+        </article>
+        <article class="feature">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="15" width="18" height="5" rx="2"/><rect x="6" y="9" width="4" height="4" rx="1"/><rect x="14" y="9" width="4" height="4" rx="1"/><path d="M12 4v4"/></svg>
+          <h3>At home on the Mac</h3>
+          <p>Make a shortcut for the Dock, Launchpad and Spotlight, open .exe files from Finder, and set per-app launch arguments, language and environment. Controllers and Task Manager panels are built in.</p>
+        </article>
+      </div>
+      <p class="cli">Prefer the terminal? Everything is also available from the full <code>vino</code> command line.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="how-h">
+    <div class="wrap">
+      <p class="eyebrow">How it works</p>
+      <h2 id="how-h">Three steps.</h2>
+      <ol class="steps">
+        <li><h3>Get Vino</h3><p>Grab it from <a href="https://github.com/bhurtyalkritan/vino">GitHub</a> and open it.</p></li>
+        <li><h3>Let it set up</h3><p>The first launch installs Rosetta and downloads <a href="https://github.com/bhurtyalkritan/vino-wine">vino-wine</a>: Wine 11.0 with CodeWeavers' fixes and MSync for smoother games.</p></li>
+        <li><h3>Drop an installer</h3><p>Drag a Windows installer onto the window. The app shows up with its real icon, read from the .exe. Click to open.</p></li>
+      </ol>
+      <p class="limits"><strong>Honest limits:</strong> games whose anti-cheat needs the Windows kernel can't run, and DirectX 12 isn't supported.</p>
+    </div>
+  </section>
+
+  <section id="wine" aria-labelledby="wine-h">
+    <div class="wrap">
+      <div class="donate">
+        <div class="orb a" aria-hidden="true"></div>
+        <div>
+          <p class="eyebrow">Support Wine</p>
+          <h2 id="wine-h">Vino exists because of <em>Wine.</em></h2>
+          <p>Everything Vino does sits on top of the Wine project. If Vino is useful to you, support the people who make it. Donations go to the Wine Development Fund, managed by Software Freedom Conservancy.</p>
+        </div>
+        <a class="btn btn-primary" href="https://www.winehq.org/donate">Donate to Wine</a>
+      </div>
+      <div class="donate">
+        <div>
+          <p class="eyebrow">Support CodeWeavers</p>
+          <h2>The people behind <em>Wine.</em></h2>
+          <p>CodeWeavers employs Wine's lead maintainer and many of its developers, and their work flows straight back into Wine. vino-wine is built from their open-source code. If you can, buy CrossOver: it's the best way to keep them doing it.</p>
+        </div>
+        <a class="btn btn-ghost" href="https://www.codeweavers.com/crossover">Get CrossOver</a>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="credits-h">
+    <div class="wrap credits">
+      <div>
+        <p class="eyebrow">Thanks</p>
+        <h2 id="credits-h">Built on the work of others.</h2>
+        <p class="note">Vino and vino-wine are not affiliated with or endorsed by CodeWeavers. CrossOver and CodeWeavers are trademarks of CodeWeavers, Inc.</p>
+      </div>
+      <ul>
+        <li>Wine <span>LGPL</span></li>
+        <li>CodeWeavers' CrossOver source <span>basis of vino-wine</span></li>
+        <li>Winetricks <span>Windows Components</span></li>
+        <li>DXVK <span>Direct3D on Vulkan</span></li>
+        <li>MoltenVK <span>Vulkan on Metal</span></li>
+        <li>innoextract <span>Inno Setup extraction</span></li>
+        <li>cabextract <span>CAB extraction</span></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p style="margin:0">Vino is open source under the MIT license.</p>
+    <nav aria-label="Repositories">
+      <a href="https://github.com/bhurtyalkritan/vino">github.com/bhurtyalkritan/vino</a>
+      <a href="https://github.com/bhurtyalkritan/vino-wine">github.com/bhurtyalkritan/vino-wine</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

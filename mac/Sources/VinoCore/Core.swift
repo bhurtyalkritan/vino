@@ -93,8 +93,8 @@ public enum Vino {
         return isFile(URL(fileURLWithPath: p)) && FileManager.default.isExecutableFile(atPath: p)
     }
 
-    /// The Wine that `vino setup` downloads.
-    public static var ownWine: String { support.appendingPathComponent("wine/Wine Stable.app/Contents/Resources/wine/bin/wine").path }
+    /// vino-wine, the Wine that `vino setup` downloads: CodeWeavers' CrossOver Wine with MSync.
+    public static var ownWine: String { support.appendingPathComponent("wine/vino-wine/bin/wine").path }
 
     static func which(_ name: String) -> String? {
         let path = ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin"
@@ -134,6 +134,20 @@ public enum Vino {
         String(label.replacingOccurrences(of: "/", with: "-").prefix(100)) + ".log"  // long names would exceed the file system's limit
     }
 
+    /// Wine's environment for bottle b. Every Wine process in a bottle must agree on MSync, so they all start here.
+    static func environment(_ b: URL, _ benv: [String: String], debug: String) -> [String: String] {
+        var full = ProcessInfo.processInfo.environment
+        full["WINEDEBUG"] = debug
+        full["MVK_CONFIG_LOG_LEVEL"] = "1"
+        full["WINEMSYNC"] = "1"  // smoother games with vino-wine (CrossOver's Wine); other Wines ignore it
+        full.merge(benv) { $1 }
+        // DXVK compiles shaders in the background instead of pausing the game (this DXVK build supports it)
+        if benv["VINO_DXVK"] == "1" && benv["DXVK_ASYNC"] == nil { full["DXVK_ASYNC"] = "1" }
+        full["WINEDLLOVERRIDES"] = overrides(benv)
+        full["WINEPREFIX"] = b.path
+        return full
+    }
+
     /// Wine's DLL choices: vino's own, then the user's WINEDLLOVERRIDES, which win where they overlap.
     public static func overrides(_ env: [String: String]) -> String {
         // winemenubuilder writes Linux menu files into the Mac's home folder; nothing on a Mac reads them
@@ -154,14 +168,7 @@ public enum Vino {
         try FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)  // Wine fills an empty prefix on first run
         let benv = env ?? loadEnv(b)
         let w = try findWine(b, benv)
-        var full = ProcessInfo.processInfo.environment
-        full["WINEDEBUG"] = debug ? "warn+all,+loaddll" : "fixme-all"
-        full["MVK_CONFIG_LOG_LEVEL"] = "1"
-        full.merge(benv) { $1 }
-        // DXVK compiles shaders in the background instead of pausing the game (this DXVK build supports it)
-        if benv["VINO_DXVK"] == "1" && benv["DXVK_ASYNC"] == nil { full["DXVK_ASYNC"] = "1" }
-        full["WINEDLLOVERRIDES"] = overrides(benv)
-        full["WINEPREFIX"] = b.path
+        let full = environment(b, benv, debug: debug ? "warn+all,+loaddll" : "fixme-all")
 
         let log = logs.appendingPathComponent(logName(label ?? "vino"))
         if FileManager.default.fileExists(atPath: log.path) {  // keep the last run's log, so re-running a crash doesn't erase it
@@ -499,11 +506,7 @@ public enum Vino {
     /// Runs a Wine program and returns what it printed.
     static func output(_ b: URL, _ args: [String]) throws -> String {
         let env = loadEnv(b)
-        var full = ProcessInfo.processInfo.environment
-        full.merge(env) { $1 }
-        full["WINEDEBUG"] = "-all"
-        full["WINEDLLOVERRIDES"] = overrides(env)
-        full["WINEPREFIX"] = b.path
+        let full = environment(b, env, debug: "-all")
         let p = Process(), pipe = Pipe()
         p.executableURL = URL(fileURLWithPath: try findWine(b, env))
         p.arguments = args

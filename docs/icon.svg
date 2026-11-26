@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Vino</title>
+  <defs>
+    <linearGradient id="bg" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#8e74ff"/>
+      <stop offset="0.55" stop-color="#5b3fd6"/>
+      <stop offset="1" stop-color="#2e1a86"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.3" cy="0.18" r="0.75">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.32"/>
+      <stop offset="0.6" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff7eb6"/>
+      <stop offset="1" stop-color="#d6246e"/>
+    </linearGradient>
+    <!-- the bowl is a soft V -->
+    <path id="bowl" d="M338 284 C372 436 436 548 512 598 C588 548 652 436 686 284 Z"/>
+    <clipPath id="inBowl"><use href="#bowl"/></clipPath>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#14093f" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- macOS icon grid: an 824px rounded square on a 1024 canvas -->
+  <g filter="url(#shadow)">
+    <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
+  </g>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#glow)"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="184.5" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="3"/>
+
+  <!-- frosted glass, then the wine, with a gently tilted surface -->
+  <use href="#bowl" fill="#ffffff" fill-opacity="0.12"/>
+  <g clip-path="url(#inBowl)">
+    <path d="M320 418 C420 402 600 432 704 408 L704 640 L320 640 Z" fill="url(#wine)"/>
+    <path d="M320 418 C420 402 600 432 704 408" fill="none" stroke="#ffffff" stroke-opacity="0.7" stroke-width="6"/>
+  </g>
+
+  <!-- the glass itself -->
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <use href="#bowl" stroke-width="24"/>
+    <path d="M512 598 L512 726" stroke-width="24"/>
+    <path d="M430 736 L594 736" stroke-width="24"/>
+    <path d="M378 318 C396 404 424 470 462 520" stroke-width="12" stroke-opacity="0.55"/>
+  </g>
+</svg>

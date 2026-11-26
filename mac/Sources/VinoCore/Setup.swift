@@ -2,9 +2,9 @@ import Foundation
 
 /// Installs what vino needs, so the app is the only download: Rosetta, then its own copy of Wine.
 public enum Setup {
-    // Gcenx's build of WineHQ's stable Wine; the checksum is the one GitHub publishes for this file
-    static let wine = (url: "https://github.com/Gcenx/macOS_Wine_builds/releases/download/11.0_1/wine-stable-11.0_1-osx64.tar.xz",
-                       sha256: "b50dc50ec7f41d58b115a6b685d4d1315ba3c797bd3aa0f49213f2703cb82388")
+    // vino-wine (github.com/bhurtyalkritan/vino-wine): CodeWeavers' CrossOver Wine with MSync; checksum from its release
+    static let wine = (url: "VINO_WINE_URL",
+                       sha256: "VINO_WINE_SHA256")
 
     public static var needsRosetta: Bool {
         var arm: Int32 = 0, size = MemoryLayout<Int32>.size
@@ -41,6 +41,8 @@ public enum Setup {
             say("Wine is ready: \(w)")
             return
         }
+        // shortcut: vino-wine has no release yet, so a missing Wine can't be fixed automatically; set its URL once released
+        guard !wine.url.hasPrefix("VINO_WINE") else { throw VinoError("vino-wine isn't released yet. Install Wine for now with: brew install --cask gcenx/wine/wine-stable") }
         try downloadWine(say: say, fraction: fraction)
         guard let v = wineVersion(Vino.ownWine) else { throw VinoError("Wine was installed but won't start: \(Vino.ownWine)") }
         say("Wine is ready: \(v)")
@@ -51,7 +53,7 @@ public enum Setup {
         try fm.createDirectory(at: Vino.support, withIntermediateDirectories: true)
         let archive = Vino.support.appendingPathComponent("wine-download.tar.xz")
         defer { try? fm.removeItem(at: archive) }
-        say("Downloading Wine (185 MB)…")
+        say("Downloading vino-wine…")
         var lastShown = -1
         try Download.file(URL(string: wine.url)!, to: archive) { f in
             fraction?(f)
@@ -65,7 +67,7 @@ public enum Setup {
         try? fm.removeItem(at: fresh)
         try fm.createDirectory(at: fresh, withIntermediateDirectories: true)
         guard Vino.run("/usr/bin/tar", ["-xJf", archive.path, "-C", fresh.path]) == 0,
-              Vino.runnable(fresh.appendingPathComponent("Wine Stable.app/Contents/Resources/wine/bin/wine").path) else {
+              Vino.runnable(fresh.appendingPathComponent("vino-wine/bin/wine").path) else {
             try? fm.removeItem(at: fresh)
             throw VinoError("couldn't unpack Wine")
         }

@@ -7,6 +7,7 @@ APP=build/Vino.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/Vino "$APP/Contents/MacOS/Vino"
+cp AppIcon.icns "$APP/Contents/Resources/"  # made from ../branding/icon.svg
 cp -R ../recipes "$APP/Contents/Resources/recipes"  # the Get Apps catalog
 cp vendor/innoextract "$APP/Contents/Resources/innoextract"  # unpacks Inno Setup installers that fail in Wine
 cp vendor/winetricks vendor/cabextract "$APP/Contents/Resources/"  # Windows components
@@ -18,6 +19,7 @@ cat > "$APP/Contents/Info.plist" <<'EOF'
   <key>CFBundleName</key><string>Vino</string>
   <key>CFBundleDisplayName</key><string>Vino</string>
   <key>CFBundleExecutable</key><string>Vino</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleIdentifier</key><string>app.vino.mac</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>0.1</string>

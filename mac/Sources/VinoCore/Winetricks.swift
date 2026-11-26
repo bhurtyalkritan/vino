@@ -46,13 +46,9 @@ public enum Winetricks {
         let benv = Vino.loadEnv(b)
         let wine = try Vino.findWine(b, benv)
         let bin = URL(fileURLWithPath: Vino.realpath(wine)).deletingLastPathComponent()
-        var env = ProcessInfo.processInfo.environment
-        env.merge(benv) { $1 }
-        env["WINEPREFIX"] = b.path
+        var env = Vino.environment(b, benv, debug: "-all")
         env["WINE"] = wine
         env["WINESERVER"] = bin.appendingPathComponent("wineserver").path
-        env["WINEDEBUG"] = "-all"
-        env["WINEDLLOVERRIDES"] = Vino.overrides(benv)
         // cabextract sits next to the bundled script; Wine's own folder gives Winetricks wine64 and friends
         let tools = URL(fileURLWithPath: script).deletingLastPathComponent().path
         env["PATH"] = [tools, bin.path, env["PATH"] ?? "/usr/bin:/bin"].joined(separator: ":")

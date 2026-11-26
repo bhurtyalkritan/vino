@@ -27,8 +27,8 @@ enum Theme {
     static let accent = Color.dynamic(rgb(106, 75, 230), rgb(160, 140, 255))
     static let accentSoft = Color.dynamic(rgb(106, 75, 230, 0.12), rgb(160, 140, 255, 0.16))
     static let onAccent = Color.dynamic(.white, rgb(23, 18, 46))
-    static let pane = Color.dynamic(rgb(250, 250, 253, 0.55), rgb(32, 31, 40, 0.5))
-    static let side = Color.dynamic(rgb(240, 239, 246, 0.35), rgb(24, 23, 31, 0.35))
+    static let pane = Color.dynamic(rgb(250, 250, 253, 0.12), rgb(32, 31, 40, 0.08))
+    static let side = Color.dynamic(rgb(240, 239, 246, 0.0), rgb(24, 23, 31, 0.0))
     static let card = Color.dynamic(rgb(255, 255, 255, 0.78), rgb(255, 255, 255, 0.055))
     static let segOn = Color.dynamic(.white, rgb(255, 255, 255, 0.14))
     static let line = Color.dynamic(rgb(20, 15, 40, 0.09), rgb(255, 255, 255, 0.08))
@@ -888,6 +888,10 @@ struct BottleSettings: View {
         Row(title: "Use ⌘ as Ctrl", detail: "So ⌘C and ⌘V copy and paste in Windows apps", busy: busy("VINO_CMDCTRL")) {
             toggle("VINO_CMDCTRL", on: "1", off: "0", env)
         }
+        Row(title: "Faster sync (MSync)", detail: "Smoother games with vino-wine. Takes effect once every app in this bottle has closed.", busy: busy("WINEMSYNC")) {
+            Toggle("Faster sync", isOn: Binding(get: { env["WINEMSYNC"] != "0" }, set: { model.set(name, "WINEMSYNC", $0 ? "" : "0") }))
+                .labelsHidden().toggleStyle(.switch).controlSize(.small)
+        }
         Row(title: "AVX support", detail: "Lets games that need AVX start. Needs macOS 15 or later.", busy: busy("ROSETTA_ADVERTISE_AVX")) {
             toggle("ROSETTA_ADVERTISE_AVX", on: "1", off: "", env)
         }
@@ -1160,7 +1164,7 @@ struct SetupView: View {
                 .shadow(color: Theme.accent.opacity(0.35), radius: 14, y: 6)
             VStack(spacing: 6) {
                 Text("Welcome to Vino").font(.system(size: 26, weight: .semibold, design: .rounded))
-                Text("Vino runs Windows apps with Wine. It downloads Wine (about 185 MB) and turns on Apple's Rosetta for you.")
+                Text("Vino runs Windows apps with vino-wine, its own build of CodeWeavers' Wine. It downloads it and turns on Apple's Rosetta for you.")
                     .font(.system(size: 13)).foregroundStyle(.secondary).multilineTextAlignment(.center).frame(maxWidth: 380)
             }
             if let status = model.setupStatus {
@@ -1233,13 +1237,24 @@ struct Pill: View {
 
 /// The frosted window: the desktop blurs through it, like the mockup's glass.
 struct Backdrop: NSViewRepresentable {
+    var material = NSVisualEffectView.Material.sidebar  // the most see-through standard glass, in light and dark
+
     func makeNSView(context: Context) -> NSVisualEffectView {
-        let v = NSVisualEffectView()
-        v.material = .underWindowBackground
+        let v = GlassView()
+        v.material = material
         v.blendingMode = .behindWindow
         v.state = .active
         return v
     }
 
-    func updateNSView(_ v: NSVisualEffectView, context: Context) {}
+    func updateNSView(_ v: NSVisualEffectView, context: Context) { v.material = material }
+
+    /// The blur can only show the desktop if the window itself is see-through.
+    final class GlassView: NSVisualEffectView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            window?.isOpaque = false
+            window?.backgroundColor = .clear
+        }
+    }
 }
