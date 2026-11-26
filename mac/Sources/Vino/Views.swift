@@ -89,6 +89,9 @@ struct RootView: View {
             return true
         }
         .sheet(item: $model.failure) { FailureView(failure: $0) }
+        .sheet(isPresented: Binding(get: { model.opening != nil && model.fixes?.isEmpty == true }, set: { if !$0 { model.opening = nil } })) {
+            if let url = model.opening { OpenFileSheet(url: url) }
+        }
         .sheet(isPresented: $newBottle) { NewBottleSheet { name in place = .bottle(name); appID = nil } }
         .task {
             await model.refresh()
@@ -660,6 +663,7 @@ struct AppPage: View {
 
             hero
             activity
+            AppSettingsCard(app: app).id(app.id)
             BottleSettings(name: app.bottle, onDelete: { place = .all; appID = nil })
         }
         .sheet(isPresented: $options) { OpenOptions(app: app) }
@@ -845,7 +849,7 @@ struct BottleSettings: View {
     @State private var panel: Panel?
 
     enum Panel: String, Identifiable {
-        case controllers, tasks
+        case controllers, tasks, components
         var id: String { rawValue }
     }
 
@@ -884,6 +888,9 @@ struct BottleSettings: View {
         Row(title: "Use ⌘ as Ctrl", detail: "So ⌘C and ⌘V copy and paste in Windows apps", busy: busy("VINO_CMDCTRL")) {
             toggle("VINO_CMDCTRL", on: "1", off: "0", env)
         }
+        Row(title: "AVX support", detail: "Lets games that need AVX start. Needs macOS 15 or later.", busy: busy("ROSETTA_ADVERTISE_AVX")) {
+            toggle("ROSETTA_ADVERTISE_AVX", on: "1", off: "", env)
+        }
     }
     }
 
@@ -912,11 +919,11 @@ struct BottleSettings: View {
     private var toolsCard: some View {
     Card(title: "Tools") {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 4), spacing: 0) {
+            ToolButton(title: "Windows Components", icon: "shippingbox") { panel = .components }
             ToolButton(title: "Controllers", icon: "gamecontroller") { panel = .controllers }
             ToolButton(title: "Task Manager", icon: "chart.bar.xaxis") { panel = .tasks }
             tool("Command Prompt", "terminal", ["start", "cmd"])
             ToolButton(title: "Install into Bottle", icon: "square.and.arrow.down") { model.chooseInstaller(into: name) }
-            ToolButton(title: "Show Files", icon: "folder") { model.showFiles(name) }
             tool("Simulate Reboot", "arrow.clockwise", ["wineboot", "-r"])
             tool("Wine Settings", "gearshape", ["winecfg"], advanced: true)
             tool("Registry Editor", "cylinder.split.1x2", ["regedit"], advanced: true)
@@ -927,6 +934,7 @@ struct BottleSettings: View {
         switch p {
         case .controllers: ControllersPanel(bottle: name)
         case .tasks: TaskManagerPanel(bottle: name)
+        case .components: ComponentsPanel(bottle: name)
         }
     }
     }

@@ -1,4 +1,8 @@
-# innoextract
+# Bundled tools
+
+Vino ships these small programs inside the app. Each keeps its own license.
+
+## innoextract
 
 `innoextract` unpacks Inno Setup installers without running them. Vino uses it only when an Inno Setup
 installer fails in Wine. It is © Daniel Scharrer, zlib license (see `innoextract-LICENSE`),
@@ -14,3 +18,13 @@ make
 ```
 
 The result links only libraries that come with macOS (`otool -L innoextract`).
+
+## winetricks
+
+The Winetricks script, release 20260125, from https://github.com/Winetricks/winetricks (LGPL-2.1, see `winetricks-COPYING`).
+It installs Windows components; it checks the checksums of what it downloads.
+
+## cabextract
+
+cabextract 1.11 from https://www.cabextract.org.uk (GPL-2, see `cabextract-COPYING`), which many Winetricks installs need.
+Built with `./configure CFLAGS="-O2 -mmacosx-version-min=13.0" && make`; it links only libraries that come with macOS.

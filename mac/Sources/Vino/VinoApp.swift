@@ -6,7 +6,8 @@ import VinoCore
 // The app is a face on its own `vino` command line (the same binary, run with a command), which does all the work.
 
 struct VinoApp: App {
-    @StateObject private var model = Model()
+    @NSApplicationDelegateAdaptor(OpenFiles.self) private var openFiles
+    @StateObject private var model = Model.shared
 
     var body: some Scene {
         WindowGroup {
@@ -16,6 +17,13 @@ struct VinoApp: App {
         }
         .windowStyle(.hiddenTitleBar)  // the frosted window runs right up to the top, like the mockup
         .defaultSize(width: 1040, height: 700)
+    }
+}
+
+/// .exe and .msi files opened from Finder (double-click, or Open With ▸ Vino) land here.
+final class OpenFiles: NSObject, NSApplicationDelegate {
+    func application(_ application: NSApplication, open urls: [URL]) {
+        Task { @MainActor in Model.shared.opening = urls.first }
     }
 }
 
@@ -33,6 +41,7 @@ struct WinApp: Identifiable, Decodable, Hashable {
     let log: String?
     let icon: String?  // a PNG read out of the Windows program, when it has one
     let exe: String?  // the program its shortcut opens, used to tell whether it's running
+    let settings: [String: String]?  // its own saved settings: VINO_ARGS, LC_ALL and environment variables
     var id: String { bottle + "/" + name }
 }
 
@@ -58,6 +67,14 @@ struct CatalogItem: Decodable, Hashable, Identifiable {
     let size: Int?
     let file: String
     var id: String { name }
+}
+
+struct ComponentItem: Decodable, Hashable, Identifiable {
+    let verb: String
+    let title: String
+    let detail: String
+    let installed: Bool
+    var id: String { verb }
 }
 
 struct Proc: Decodable, Hashable, Identifiable {
@@ -88,6 +105,8 @@ struct Failure: Identifiable {
 
 @MainActor
 final class Model: ObservableObject {
+    static let shared = Model()
+    @Published var opening: URL?  // a file opened from Finder, waiting for the user to pick a bottle
     @Published var apps: [WinApp] = []
     @Published var bottles: [Bottle] = []
     @Published var wines: [WineBuild] = []
@@ -280,6 +299,41 @@ final class Model: ObservableObject {
             else { show("Moved \(bottle) to the Trash") }
             await reload()
         }
+    }
+
+    /// Saves one of an app's own settings (empty removes it).
+    func configure(_ app: WinApp, _ key: String, _ value: String) {
+        Task {
+            let r = await Self.vino(["configure", "-b", app.bottle, "--", app.name, "\(key)=\(value)"])
+            if r.status != 0 { failure = Failure(title: "Couldn't save that setting", text: r.err.trimmed) }
+            await reload()
+        }
+    }
+
+    /// Makes a Mac app in ~/Applications for this Windows app and shows it in Finder.
+    func makeShortcut(_ app: WinApp) {
+        Task {
+            let r = await Self.vino(["shortcut", "-b", app.bottle, "--", app.name])
+            if r.status != 0 { failure = Failure(title: "Couldn't make the shortcut", text: r.err.trimmed); return }
+            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: r.out.trimmed)])
+            show("Made \(app.name) in your Applications folder. Drag it to the Dock to keep it there.")
+        }
+    }
+
+    func components(_ bottle: String) async -> [ComponentItem] {
+        let r = await Self.vino(["components", "-b", bottle, "--json"])
+        return (try? JSONDecoder().decode([ComponentItem].self, from: Data(r.out.utf8))) ?? []
+    }
+
+    /// Installs a Windows component with Winetricks. Some take minutes, so it shows in the bottom pill.
+    func installComponent(_ bottle: String, _ verb: String, _ title: String) async {
+        let job = UUID()
+        activities[job] = "Installing \(title)…"
+        let r = await Self.vino(["winetricks", "-b", bottle, "--", verb])
+        activities[job] = nil
+        if r.status != 0 { failure = Failure(title: "Couldn't install \(title)", text: r.err.trimmed) }
+        else { show("Installed \(title)") }
+        await reload()
     }
 
     /// Windows programs running in a bottle (Wine's own background services left out).

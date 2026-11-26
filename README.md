@@ -41,6 +41,9 @@ Everything goes into one bottle called `default` unless you add `-b NAME` to kee
 | `files` | Opens the bottle's C: drive in Finder |
 | `install recipe.json` | Downloads, checks and installs an app |
 | `setup` / `doctor` | Installs what's missing / checks everything |
+| `configure NAME KEY=value` | Saves an app's own settings: `VINO_ARGS="-windowed"`, `LC_ALL=ja_JP.UTF-8` (its language), or any environment variable |
+| `shortcut NAME` | Makes a Mac app in `~/Applications` that opens it, for the Dock, Launchpad and Spotlight |
+| `components` / `winetricks VERB…` | Lists common Windows components and installs them (Visual C++, .NET, fonts…) with Winetricks |
 
 Settings for `set` (all per bottle):
 
@@ -51,6 +54,7 @@ Settings for `set` (all per bottle):
 | `VINO_RETINA=1` | Retina resolution |
 | `VINO_CMDCTRL=1` | ⌘ acts as Ctrl, so ⌘C/⌘V copy and paste |
 | `VINO_WINVER=win7` | Windows version: `win11`, `win10`, `win81`, `win8`, `win7`, `vista`, `winxp` |
+| `ROSETTA_ADVERTISE_AVX=1` | Lets games that need AVX start (macOS 15+) |
 | `VINO_WINE=/path/to/wine` | This bottle's own Wine build |
 | anything else | Passed to Wine as an environment variable |
 

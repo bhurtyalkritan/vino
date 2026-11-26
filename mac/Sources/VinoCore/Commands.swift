@@ -29,6 +29,11 @@ public enum CLI {
         "delete": Spec(help: "move a bottle to the Trash", bottle: false, positionals: ["name"]),
         "install": Spec(help: "install an app from the catalog by name, or from a recipe file", bottle: false, positionals: ["recipe"]),
         "catalog": Spec(help: "list the apps Vino can install for you", bottle: false, flags: ["--json"]),
+        "components": Spec(help: "list common Windows components (Visual C++, .NET, fonts) and which this bottle has", flags: ["--json"]),
+        "winetricks": Spec(help: "install Windows components with Winetricks, like: vino winetricks vcrun2022 corefonts", many: "verbs"),
+        "configure": Spec(help: "save an app's own settings: VINO_ARGS=\"-windowed\", LC_ALL=ja_JP.UTF-8 (its language), or any environment variable; NAME= removes one",
+                          positionals: ["name"], many: "pairs"),
+        "shortcut": Spec(help: "make a Mac app in ~/Applications that opens a Windows app, for the Dock, Launchpad and Spotlight", positionals: ["name"]),
         "doctor": Spec(help: "check that everything is set up, and say how to fix it", bottle: false),
         "setup": Spec(help: "install what vino needs: Rosetta and Wine", bottle: false),
     ]
@@ -141,6 +146,14 @@ public enum CLI {
             Vino.run("/usr/bin/open", [c.path])
         case "delete": try delete(a.values["name"]!)
         case "install": try install(a.values["recipe"]!)
+        case "configure": try configure(a)
+        case "components":
+            let have = Winetricks.installed(try bottle())
+            let list = Winetricks.components.map { ["verb": $0.verb, "title": $0.title, "detail": $0.detail, "installed": have.contains($0.verb)] as [String: Any] }
+            if a.has("--json") { printJSON(list) }
+            else { list.forEach { print("\(($0["installed"] as! Bool) ? "✓" : " ") \($0["verb"]!)  \($0["title"]!)") } }
+        case "winetricks": try Winetricks.install(try bottle(), a.list)
+        case "shortcut": print(try macShortcut(try Vino.findApp(a.values["name"]!, try a.bottle.map(Vino.bottle))).path)
         case "catalog":
             let items = catalog()
             if a.has("--json") { printJSON(items.map { $0.info }) }
@@ -186,6 +199,56 @@ public enum CLI {
         print("Unpacked \(name). Its installer's own setup steps were skipped. Start it with: vino run \"\(name)\"")
     }
 
+    static func configure(_ a: Args) throws {
+        let app = try Vino.findApp(a.values["name"]!, try a.bottle.map(Vino.bottle))
+        var changes: [(String, String)] = []
+        for kv in a.list {
+            guard let eq = kv.firstIndex(of: "="), eq != kv.startIndex else { throw VinoError("expected NAME=value, got '\(kv)'") }
+            changes.append((String(kv[..<eq]), String(kv[kv.index(after: eq)...])))
+        }
+        try Vino.locked(app.bottle) {
+            let file = app.bottle.appendingPathComponent("vino-apps.json")
+            var all = Vino.loadJSON(file)
+            var mine = all[app.name] as? [String: String] ?? [:]
+            for (k, v) in changes { mine[k] = v.isEmpty ? nil : v }
+            all[app.name] = mine.isEmpty ? nil : mine
+            try Vino.saveJSON(file, all)
+        }
+    }
+
+    /// A tiny Mac app in ~/Applications that opens a Windows app through this Vino,
+    /// so it can live in the Dock and show up in Launchpad and Spotlight.
+    static func macShortcut(_ app: Vino.App) throws -> URL {
+        guard let vino = Bundle.main.executablePath.map(Vino.realpath) else { throw VinoError("can't tell where Vino is") }
+        let fm = FileManager.default
+        let bundle = Vino.home.appendingPathComponent("Applications/\(app.name.replacingOccurrences(of: "/", with: "-")).app")
+        let contents = bundle.appendingPathComponent("Contents")
+        try? fm.removeItem(at: bundle)
+        try fm.createDirectory(at: contents.appendingPathComponent("MacOS"), withIntermediateDirectories: true)
+        try fm.createDirectory(at: contents.appendingPathComponent("Resources"), withIntermediateDirectories: true)
+
+        let quote = { (s: String) in "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+        // shortcut: points at this copy of Vino; moving Vino.app breaks it until the shortcut is made again
+        let script = "#!/bin/sh\n# Opens \(app.name) with Vino\nexec \(quote(vino)) run -b \(quote(app.bottle.lastPathComponent)) -- \(quote(app.name))\n"
+        let launcher = contents.appendingPathComponent("MacOS/launch")
+        try script.write(to: launcher, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: launcher.path)
+
+        var info: [String: Any] = [
+            "CFBundleExecutable": "launch",
+            "CFBundleName": app.name,
+            "CFBundleIdentifier": "app.vino.shortcut." + app.name.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }.map(String.init).joined(),
+            "CFBundlePackageType": "APPL",
+            "LSApplicationCategoryType": "public.app-category.games",  // lets macOS use Game Mode
+        ]
+        if let png = Icons.cached(app),
+           Vino.run("/usr/bin/sips", ["-s", "format", "icns", png, "--out", contents.appendingPathComponent("Resources/icon.icns").path]) == 0 {
+            info["CFBundleIconFile"] = "icon"
+        }
+        try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0).write(to: contents.appendingPathComponent("Info.plist"))
+        return bundle
+    }
+
     static func quit(_ a: Args) throws -> Int32 {
         let b = try Vino.bottle(a.bottle ?? "default")
         if let name = a.values["optional"] {
@@ -222,7 +285,8 @@ public enum CLI {
                         "last": hist[app.bottle]![app.name] as? [String: Any] ?? NSNull(),
                         "log": app.bottle.appendingPathComponent("logs/" + Vino.logName(app.name)).path,
                         "icon": Icons.cached(app) ?? NSNull(),
-                        "exe": Vino.resolve(app.bottle, app.shortcut)?.exe.lastPathComponent ?? NSNull()]
+                        "exe": Vino.resolve(app.bottle, app.shortcut)?.exe.lastPathComponent ?? NSNull(),
+                        "settings": Vino.appSettings(app.bottle)[app.name] ?? [:]]
             })
             return
         }

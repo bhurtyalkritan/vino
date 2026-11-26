@@ -158,6 +158,8 @@ public enum Vino {
         full["WINEDEBUG"] = debug ? "warn+all,+loaddll" : "fixme-all"
         full["MVK_CONFIG_LOG_LEVEL"] = "1"
         full.merge(benv) { $1 }
+        // DXVK compiles shaders in the background instead of pausing the game (this DXVK build supports it)
+        if benv["VINO_DXVK"] == "1" && benv["DXVK_ASYNC"] == nil { full["DXVK_ASYNC"] = "1" }
         full["WINEDLLOVERRIDES"] = overrides(benv)
         full["WINEPREFIX"] = b.path
 
@@ -385,13 +387,21 @@ public enum Vino {
         f.pathExtension.lowercased() == "exe" ? [f.path] : ["start", "/wait", "/unix", f.path]
     }
 
+    /// Each app's saved settings: VINO_ARGS (launch arguments) plus environment variables like LC_ALL (its language).
+    public static func appSettings(_ b: URL) -> [String: [String: String]] {
+        loadJSON(b.appendingPathComponent("vino-apps.json")).compactMapValues { $0 as? [String: String] }
+    }
+
     static func launch(_ b: URL, _ lnk: URL, _ name: String, _ extra: [String], _ debug: Bool) throws {
+        let saved = appSettings(b)[name] ?? [:]
+        let env = loadEnv(b).merging(saved.filter { $0.key != "VINO_ARGS" }) { $1 }  // the app's own settings win
+        let args = splitArgs(saved["VINO_ARGS"] ?? "") + extra
         guard let r = resolve(b, lnk) else {
             // unreadable shortcut: Wine can open it, but start can't wait on it or report a real exit code
-            try wine(b, ["start", "/unix", lnk.path] + extra, debug: debug, check: false)
+            try wine(b, ["start", "/unix", lnk.path] + args, debug: debug, check: false, env: env)
             return
         }
-        try wine(b, program(r.exe) + r.args + extra, cwd: r.cwd, label: name, debug: debug)
+        try wine(b, program(r.exe) + r.args + args, cwd: r.cwd, label: name, debug: debug, env: env)
     }
 
     // MARK: installed programs, from Wine's registry files

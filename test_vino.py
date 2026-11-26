@@ -271,4 +271,34 @@ assert r.returncode == 1 and "vino catalog" in r.stderr
 # apps know which program they run, so the app can tell when it's really running
 assert next(x for x in json.loads(vino_ok("apps", "-b", "npp", "--json").stdout) if x["name"] == "Notepad++")["exe"] == "notepad++.exe"
 
+# ---- per-app settings, Mac shortcuts, Windows components ----
+assert vino_ok("configure", "-b", "npp", "Notepad++", "VINO_ARGS=-multiInst -nosession", "FOO=perapp").returncode == 0
+vino_ok("run", "-b", "npp", "Notepad++", "extra.txt")
+_, _, foo, args, _ = last_call()
+assert foo == "perapp" and args.endswith("notepad++.exe -multiInst -nosession extra.txt"), (foo, args)
+assert next(x for x in json.loads(vino_ok("apps", "-b", "npp", "--json").stdout) if x["name"] == "Notepad++")["settings"]["FOO"] == "perapp"
+vino_ok("configure", "-b", "npp", "Notepad++", "FOO=")
+assert "FOO" not in json.loads((B / "npp/vino-apps.json").read_text())["Notepad++"]
+assert vino_ok("configure", "-b", "npp", "Nope", "A=1").returncode == 1
+
+r = vino_ok("shortcut", "-b", "npp", "Notepad++")
+app = Path(r.stdout.strip())
+assert app == home / "Applications/Notepad++.app", app
+launcher = (app / "Contents/MacOS/launch").read_text()
+assert "run -b 'npp' -- 'Notepad++'" in launcher and os.access(app / "Contents/MacOS/launch", os.X_OK)
+import plistlib
+info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
+assert info["CFBundleExecutable"] == "launch" and info["LSApplicationCategoryType"] == "public.app-category.games"
+assert subprocess.run([str(app / "Contents/MacOS/launch")], env=env).returncode == 0  # the shortcut really opens it
+assert last_call()[3].endswith("notepad++.exe -multiInst -nosession")
+
+wt = home / "fake-winetricks"
+wt.write_text('#!/bin/sh\necho "$WINEPREFIX|$*" >> "$CALLS.wt"\nshift\nfor v in "$@"; do echo "$v" >> "$WINEPREFIX/winetricks.log"; done\n')
+wt.chmod(0o755)
+assert vino_ok("winetricks", "-b", "games", "vcrun2022", "corefonts", VINO_WINETRICKS=str(wt)).returncode == 0
+assert (home / "calls.wt").read_text().strip().endswith("|--unattended vcrun2022 corefonts")
+comps = {c["verb"]: c["installed"] for c in json.loads(vino_ok("components", "-b", "games", "--json").stdout)}
+assert comps["vcrun2022"] and comps["corefonts"] and not comps["dotnet48"], comps
+assert vino_ok("winetricks", "-b", "games", "vcrun2022;rm", VINO_WINETRICKS=str(wt)).returncode == 1  # names are checked
+
 print("all vino tests passed")

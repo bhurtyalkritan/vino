@@ -131,3 +131,145 @@ struct TaskManagerPanel: View {
         }
     }
 }
+
+// MARK: - This app's own settings
+
+struct AppSettingsCard: View {
+    @EnvironmentObject var model: Model
+    let app: WinApp
+    @State private var args = ""
+    @State private var env = ""
+
+    static let languages = [("Automatic", ""), ("English", "en_US.UTF-8"), ("Japanese", "ja_JP.UTF-8"), ("Chinese (Simplified)", "zh_CN.UTF-8"),
+                            ("Chinese (Traditional)", "zh_TW.UTF-8"), ("Korean", "ko_KR.UTF-8"), ("Russian", "ru_RU.UTF-8"), ("German", "de_DE.UTF-8"),
+                            ("French", "fr_FR.UTF-8"), ("Spanish", "es_ES.UTF-8"), ("Italian", "it_IT.UTF-8"), ("Portuguese (Brazil)", "pt_BR.UTF-8"),
+                            ("Polish", "pl_PL.UTF-8"), ("Ukrainian", "uk_UA.UTF-8"), ("Thai", "th_TH.UTF-8")]
+
+    private var saved: [String: String] { app.settings ?? [:] }
+    private var extraEnv: [String: String] { saved.filter { $0.key != "VINO_ARGS" && $0.key != "LC_ALL" } }
+
+    var body: some View {
+        Card(title: "This App", note: "Used every time \(app.name) opens. Press Return to save a text field.") {
+            Row(title: "Launch arguments", detail: "Added to how it starts, like -windowed or -nosplash") {
+                TextField("None", text: $args).textFieldStyle(.roundedBorder).frame(width: 230)
+                    .font(.system(size: 12, design: .monospaced))
+                    .onSubmit { model.configure(app, "VINO_ARGS", args.trimmed) }
+            }
+            Row(title: "Language", detail: "Some games only start, or only show text, in their own language") {
+                Picker("Language", selection: Binding(get: { saved["LC_ALL"] ?? "" }, set: { model.configure(app, "LC_ALL", $0) })) {
+                    ForEach(Self.languages, id: \.1) { Text($0.0).tag($0.1) }
+                }
+                .labelsHidden().fixedSize()
+            }
+            Row(title: "Environment", detail: "Extra settings for Wine, like DXVK_HUD=full") {
+                TextField("NAME=value NAME=value", text: $env).textFieldStyle(.roundedBorder).frame(width: 230)
+                    .font(.system(size: 12, design: .monospaced))
+                    .onSubmit(saveEnv)
+            }
+            Row(title: "Mac shortcut", detail: "Open it from the Dock, Launchpad or Spotlight like a Mac app") {
+                Button { model.makeShortcut(app) } label: { Label("Make Shortcut", systemImage: "plus.app") }.buttonStyle(PillButton())
+            }
+        }
+        .onAppear {
+            args = saved["VINO_ARGS"] ?? ""
+            env = extraEnv.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: " ")
+        }
+    }
+
+    private func saveEnv() {
+        // shortcut: values can't contain spaces here; use `vino configure` for those
+        var new: [String: String] = [:]
+        for pair in env.split(whereSeparator: \.isWhitespace) {
+            let kv = pair.split(separator: "=", maxSplits: 1).map(String.init)
+            if kv.count == 2, !kv[0].isEmpty, kv[0] != "VINO_ARGS", kv[0] != "LC_ALL" { new[kv[0]] = kv[1] }
+        }
+        for key in extraEnv.keys where new[key] == nil { model.configure(app, key, "") }
+        for (k, v) in new where extraEnv[k] != v { model.configure(app, k, v) }
+    }
+}
+
+// MARK: - Windows components
+
+struct ComponentsPanel: View {
+    @EnvironmentObject var model: Model
+    let bottle: String
+    @State private var items: [ComponentItem]?
+    @State private var busy: String?
+    @State private var other = ""
+
+    var body: some View {
+        PanelFrame(icon: "shippingbox", title: "Windows Components",
+                   subtitle: "Parts many Windows apps need. Each comes from its publisher and is checked before installing.") {
+            ScrollView {
+                Card(title: "Common") {
+                    if items == nil { Row(title: "Checking…") { ProgressView().controlSize(.small) } }
+                    ForEach(items ?? []) { c in
+                        Row(title: c.title, detail: c.detail) {
+                            if c.installed {
+                                Text("Installed").chip(Theme.ok)
+                            } else if busy == c.verb {
+                                ProgressView().controlSize(.small).frame(width: 60)
+                            } else {
+                                Button("Install") { install(c.verb, c.title) }.buttonStyle(PillButton()).disabled(busy != nil)
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(maxHeight: 390)
+            HStack(spacing: 8) {
+                TextField("Any other Winetricks name, like vcrun2019", text: $other)
+                    .textFieldStyle(.roundedBorder).font(.system(size: 12, design: .monospaced))
+                    .onSubmit { if !other.trimmed.isEmpty { install(other.trimmed, other.trimmed) } }
+                Button("Install") { install(other.trimmed, other.trimmed) }
+                    .buttonStyle(PillButton()).disabled(other.trimmed.isEmpty || busy != nil)
+            }
+            Link("Everything Winetricks can install", destination: URL(string: "https://github.com/Winetricks/winetricks/blob/master/files/verbs/all.txt")!)
+                .font(.system(size: 12))
+        }
+        .task { items = await model.components(bottle) }
+    }
+
+    private func install(_ verb: String, _ title: String) {
+        busy = verb
+        Task {
+            await model.installComponent(bottle, verb, title)
+            items = await model.components(bottle)
+            busy = nil
+        }
+    }
+}
+
+// MARK: - A file opened from Finder
+
+struct OpenFileSheet: View {
+    @EnvironmentObject var model: Model
+    @Environment(\.dismiss) private var dismiss
+    let url: URL
+    @State private var bottle = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 12) {
+                AppIcon(name: url.deletingPathExtension().lastPathComponent, size: 44, icon: nil)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Open \(url.lastPathComponent)").font(.system(size: 15, weight: .semibold)).lineLimit(1).truncationMode(.middle)
+                    Text("Installers add their app to the bottle you pick.").font(.system(size: 12)).foregroundStyle(.secondary)
+                }
+            }
+            Picker("Bottle", selection: $bottle) {
+                ForEach(model.bottles) { Text($0.title).tag($0.name) }
+            }
+            HStack {
+                Spacer()
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction).buttonStyle(PillButton())
+                Button("Open") { model.install(url, into: bottle); dismiss() }
+                    .keyboardShortcut(.defaultAction).buttonStyle(PillButton(kind: .primary)).disabled(bottle.isEmpty)
+            }
+        }
+        .padding(22)
+        .frame(width: 420)
+        .tint(Theme.accent)
+        .onAppear { bottle = model.defaultBottle }
+    }
+}
